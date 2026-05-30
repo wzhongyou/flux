@@ -1,4 +1,0 @@
-{"action":"create_collection","collection":"articles","metric":"cosine","crc32":3087122852}
-{"action":"upsert","collection":"articles","document":{"id":"doc1","vector":[0.9,0.1,0.2],"metadata":{"category":"news","source":"site-a"}},"crc32":788265595}
-{"action":"upsert","collection":"articles","document":{"id":"doc2","vector":[0.1,0.8,0.3],"metadata":{"category":"blog","source":"site-b"}},"crc32":2167676240}
-{"action":"upsert","collection":"articles","document":{"id":"doc3","vector":[0.75,0.25,0],"metadata":{"category":"news","source":"site-c"}},"crc32":2352478162}
