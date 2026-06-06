@@ -15,37 +15,37 @@ go build -o proximia ./cmd/proximia
 ./proximia
 ```
 
-启动后打开 http://localhost:8080 进入控制台。
+启动后打开 http://localhost:9876 进入控制台。
 
 ## 快速入门
 
 ```bash
 # 1. 创建集合（带类型化 Schema）
-curl -s -X POST http://localhost:8080/collections \
+curl -s -X POST http://localhost:9876/collections \
   -H 'Content-Type: application/json' \
   -d '{"name":"demo","schema":{"fields":[{"name":"tag","type":"string","indexable":true},{"name":"title","type":"text"},{"name":"price","type":"float"}]}}'
 
 # 2. 写入向量
-curl -s -X POST http://localhost:8080/collections/demo/upsert \
+curl -s -X POST http://localhost:9876/collections/demo/upsert \
   -H 'Content-Type: application/json' \
   -d '{"id":"doc1","vector":[0.9,0.1,0.2],"metadata":{"tag":"news","title":"深度学习 Transformer 架构","price":10}}'
 
-curl -s -X POST http://localhost:8080/collections/demo/upsert \
+curl -s -X POST http://localhost:9876/collections/demo/upsert \
   -H 'Content-Type: application/json' \
   -d '{"id":"doc2","vector":[0.1,0.9,0.3],"metadata":{"tag":"blog","title":"数据库索引优化实践","price":20}}'
 
 # 3. 建立 HNSW 索引
-curl -s -X POST http://localhost:8080/collections/demo/index \
+curl -s -X POST http://localhost:9876/collections/demo/index \
   -H 'Content-Type: application/json' \
   -d '{"action":"build","index_type":"hnsw"}'
 
 # 4. 搜索
-curl -s -X POST http://localhost:8080/collections/demo/search \
+curl -s -X POST http://localhost:9876/collections/demo/search \
   -H 'Content-Type: application/json' \
   -d '{"query":[0.85,0.15,0.2],"k":5,"filter":{"tag":"news"}}'
 
 # 5. 混合搜索（向量 + BM25 全文）
-curl -s -X POST http://localhost:8080/collections/demo/hybrid-search \
+curl -s -X POST http://localhost:9876/collections/demo/hybrid-search \
   -H 'Content-Type: application/json' \
   -d '{"query":[0.85,0.15,0.2],"text_query":"深度学习","k":5,"alpha":0.7}'
 ```
@@ -214,7 +214,7 @@ hybrid := db.HybridSearch("docs", []float64{0.8, 0.2, 0.1}, "news", 5, 0.7, nil)
 
 ## 控制台
 
-启动后浏览器访问 http://localhost:8080：
+启动后浏览器访问 http://localhost:9876：
 
 | 页面 | 功能 |
 |------|------|
