@@ -553,40 +553,35 @@ GET /metrics
 
 ## 8. 典型调用流程
 
-### Go SDK（直接嵌入，无网络开销）
+### C++ 库嵌入（零网络开销）
 
-```go
-import "github.com/wzhongyou/flux"
+```cpp
+#include <flux/database.h>
+#include <flux/schema.h>
 
 // 1. 打开数据库
-db, _ := flux.NewVectorDatabase("app.wal")
-defer db.Close()
+flux::VectorDatabase db("app.wal");
 
 // 2. 建库
-schema := &flux.Schema{
-    Fields: []flux.FieldSchema{
-        {Name: "category", Type: flux.FieldTypeString, Indexable: true},
-        {Name: "content",  Type: flux.FieldTypeText,   Indexable: true},
-    },
-}
-db.CreateCollectionWithSchema("docs", flux.Cosine, schema)
+auto schema = std::make_unique<flux::Schema>(flux::Schema{{
+    {"category", flux::FieldType::String, true},
+    {"content",  flux::FieldType::Text,   true},
+}});
+db.create_collection_with_schema("docs", flux::DistanceMetric::Cosine, std::move(schema));
 
 // 3. 写数据
-db.Upsert("docs", &flux.Document{
-    ID:       "doc1",
-    Vector:   []float64{0.1, 0.2, 0.3},
-    Metadata: map[string]interface{}{"category": "tech", "content": "vector database"},
-})
+db.upsert("docs", {"doc1", {0.1, 0.2, 0.3},
+    {{"category", "tech"}, {"content", "vector database"}}});
 
 // 4. 建索引
-db.BuildIndex("docs", "hnsw")
+db.build_index("docs", "hnsw");
 
 // 5. 查
-results, _ := db.Search("docs", []float64{0.15, 0.25, 0.35}, 10,
-    flux.FieldEqual("category", "tech"))
+auto results = db.search("docs", {0.15, 0.25, 0.35}, 10,
+    flux::FieldEqual("category", "tech"));
 
 // 6. 混合查
-hybrid := db.HybridSearch("docs", queryVec, "vector database", 10, 0.5, nil)
+auto hybrid = db.hybrid_search("docs", query_vec, "vector database", 10, 0.5);
 ```
 
 ### HTTP API（跨语言调用）

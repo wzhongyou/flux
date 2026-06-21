@@ -66,7 +66,7 @@ graph TB
 
         subgraph ExtCapa["生态"]
             E1["HTTP REST API"]
-            E2["Go SDK"]
+            E2["C++ 库嵌入"]
             E3["Web 调试控制台"]
             E4["LangChain / LlamaIndex 集成"]
         end
@@ -76,26 +76,26 @@ graph TB
         direction TB
 
         subgraph Lang["语言与运行时"]
-            L1["Go 1.22+"]
-            L2["标准库 net/http"]
-            L3["sync.RWMutex 并发控制"]
+            L1["C++17 (GCC 13+ / Clang 17+)"]
+            L2["cpp-httplib HTTP 服务"]
+            L3["std::shared_mutex 并发控制"]
         end
 
         subgraph Store["持久化"]
-            D1["JSON Lines WAL"]
+            D1["JSON Lines WAL + CRC32"]
             D2["内存向量存储"]
-            D3["文件序列化"]
+            D3["JSON 快照"]
         end
 
         subgraph AlgoC["算法"]
             A1["HNSW 图算法"]
-            A2["IVF 聚类"]
+            A2["IVF 聚类 (K-means++)"]
             A3["BM25 全文检索"]
-            A4["余弦 / L2 / 内积"]
+            A4["余弦 / L2 / 内积 + SIMD"]
         end
 
         subgraph Tool["工具链"]
-            T1["Go Toolchain"]
+            T1["CMake + vcpkg"]
             T2["HTML / JS 控制台前端"]
             T3["Prometheus 集成"]
         end
@@ -171,20 +171,21 @@ sequenceDiagram
 
 | 模块 | 状态 | 说明 |
 |------|------|------|
-| HTTP REST API（15+ 个端点） | ✅ 已实现 | collections CRUD、upsert、batch-upsert、batch-delete、search、hybrid-search、recall、explain、index、stats、health、ready、snapshot、restore、metrics、export、import、console |
-| 内存向量存储 | ✅ 已实现 | Collection 管理，map 存储，RWMutex 并发控制 |
-| WAL 持久化 | ✅ 已实现 | JSON Lines 格式，启动时重放恢复 |
-| 精确搜索（BruteForce） | ✅ 已实现 | 全量扫描 + 排序取 top-k |
-| 三种距离度量 | ✅ 已实现 | Cosine、Euclidean (L2)、InnerProduct |
-| 元数据过滤 | ✅ 已实现 | 等式/范围/IN/NOT/文本/地理半径 + And/Or/Not 组合器 + 倒排索引预过滤 |
-| HNSW 索引 | ✅ 已实现 | 图索引结构，支持 efSearch/efConstruction/M 参数 |
-| IVF 索引 | ✅ 已实现 | K-means 聚类 + 倒排，支持 nProbe 参数 |
-| Web 控制台 | ✅ 已实现 | Go embed + HTML/JS SPA，Home/Collections/Documents/Search/Monitor 五页面 |
-| Prometheus 指标 | ✅ 已实现 | 查询耗时、写入统计、向量计数、自建轻量指标 |
-| 查询解释器 | ✅ 已实现 | 搜索路径、候选数、耗时、过滤条件展示 |
-| 导入 / 导出 | ✅ 已实现 | JSON Lines 格式、NDJSON 流式导入导出 |
-| 快照 / 恢复 | ✅ 已实现 | JSON 全量保存 + WAL 截断 |
-| LangChain / LlamaIndex | ⏳ 规划中 | 生态集成适配器 |
+| HTTP REST API（16+ 个端点） | ✅ C++17 | cpp-httplib，API 协议兼容 |
+| 内存向量存储 | ✅ | Collection 管理，shared_mutex 并发控制 |
+| WAL 持久化 | ✅ | JSON Lines + CRC32，启动时重放恢复 |
+| 精确搜索（BruteForce） | ✅ | Highway SIMD 加速 |
+| 三种距离度量 | ✅ | Cosine、Euclidean (L2)、InnerProduct |
+| 元数据过滤 | ✅ | 等式/范围/IN/NOT/文本/地理半径 + And/Or/Not 组合器 + 倒排索引预过滤 |
+| HNSW 索引 | ✅ | recall@10 ≥ 85%，支持 efSearch/efConstruction/M 参数 |
+| IVF 索引 | ✅ | K-means++ 聚类 + 倒排列表，支持 nProbe 参数 |
+| BM25 全文检索 | ✅ | BM25Okapi，支持 IndexDocument / Remove / Score |
+| 混合搜索 | ✅ | 加权融合 + RRF（Reciprocal Rank Fusion） |
+| Web 控制台 | ✅ | 编译期嵌入 HTML/JS SPA |
+| Prometheus 指标 | ✅ | 轻量 text format 输出 |
+| 查询解释器 | ✅ | 搜索路径、候选数、耗时展示 |
+| 导入 / 导出 | ✅ | NDJSON 流式 |
+| 快照 / 恢复 | ✅ | JSON 全量保存 + WAL 截断 |
 
 ### 2.4 模块依赖关系
 
@@ -194,24 +195,24 @@ graph LR
     classDef vital fill:#bbdefb,stroke:#1565c0,stroke-width:2px
 
     subgraph HTTP层
-        A["cmd/flux/main.go<br/>HTTP 服务器"]
+        A["src/server.cpp<br/>HTTP 服务器"]
     end
 
-    subgraph 引擎层 (import 路径: flux)
-        B["vector.go<br/>VectorDatabase + Collection"]
-        C["wal.go<br/>WAL 持久化"]
-        D["hnsw.go<br/>HNSW 图索引"]
-        E["ivf.go<br/>IVF 聚类索引"]
-        F["index.go<br/>Index / FilteredIndex 接口"]
-        G["schema.go<br/>Schema 类型化字段"]
-        H["filter.go<br/>过滤引擎 + 元数据倒排索引"]
-        I["bm25.go<br/>BM25 全文索引"]
-        K["hybrid.go<br/>混合搜索融合"]
-        L["snapshot.go<br/>快照/恢复"]
-        M["io.go<br/>导入导出"]
-        N["metrics.go<br/>Prometheus 指标"]
-        O["config.go<br/>配置管理"]
-        P["webembed.go<br/>控制台资源嵌入"]
+    subgraph 引擎层 (flux_core)
+        B["database.cpp<br/>VectorDatabase + Collection"]
+        C["wal.cpp<br/>WAL 持久化"]
+        D["hnsw.cpp<br/>HNSW 图索引"]
+        E["ivf.cpp<br/>IVF 聚类索引"]
+        F["index.h<br/>Index / FilteredIndex 接口"]
+        G["schema.cpp<br/>Schema 类型化字段"]
+        H["filter.cpp<br/>过滤引擎 + 元数据倒排索引"]
+        I["bm25.cpp<br/>BM25 全文索引"]
+        K["hybrid.cpp<br/>混合搜索融合"]
+        L["snapshot.cpp<br/>快照/恢复"]
+        M["io.cpp<br/>导入导出"]
+        N["metrics.cpp<br/>Prometheus 指标"]
+        O["config.cpp<br/>配置管理"]
+        P["server.cpp<br/>HTTP 服务 + 静态资源"]
     end
 
     subgraph 前端
@@ -282,14 +283,14 @@ graph TB
     subgraph Client["🧑 客户端"]
         direction LR
         CLI["curl / Postman<br/>(HTTP Client)"]
-        SDK["Go SDK<br/>(pkg/flux)"]
+        SDK["C++ 库嵌入<br/>(libflux_core)"]
         Console["Web 控制台<br/>(浏览器)"]
     end
 
     %% ========== HTTP API 层 ==========
-    subgraph HTTP["🌐 HTTP API 层 (cmd/flux)"]
+    subgraph HTTP["🌐 HTTP API 层 (src/server.cpp)"]
         direction TB
-        Router["net/http 路由<br/>mux.HandleFunc"]
+        Router["cpp-httplib 路由<br/>mux.HandleFunc"]
 
         subgraph Middleware["中间件"]
             MW_Auth["API Key 认证<br/>X-API-Key"]
@@ -311,14 +312,14 @@ graph TB
     end
 
     %% ========== 引擎核心层 ==========
-    subgraph Engine["⚙️ 引擎核心层 (pkg/flux)"]
+    subgraph Engine["⚙️ 引擎核心层 (libflux_core)"]
         direction TB
 
         DB["VectorDatabase<br/>(数据库入口)"]
 
         subgraph CollMgr["集合管理"]
-            Collections["collections map<br/>map[string]*Collection"]
-            RWLock["sync.RWMutex<br/>并发控制"]
+            Collections["collections<br/>unordered_map"]
+            RWLock["shared_mutex<br/>并发控制"]
             CollOps["CreateCollection / CreateCollectionWithSchema<br/>DeleteCollection / Truncate"]
         end
 
@@ -461,7 +462,7 @@ graph TB
 - 支持多集合/空间（namespace）管理
 - 支持 schema 约束、字段定义、索引配置
 - 提供 HTTP/REST API，兼容常见向量数据库调用模式
-- 提供本地 SDK（Go）用于集成与开发
+- 提供 C++ 库嵌入用于集成与开发
 
 ### 3.5 可观测性与调试
 - API 日志、查询耗时、写入耗时统计
@@ -487,7 +488,7 @@ Flux 的能力应覆盖或对标以下主流产品的核心维度：
 - Pinecone：高性能索引、向量 + 元数据过滤、REST API
 - Milvus：多种索引、分布式扩展、数据管理能力
 - Weaviate：知识图谱、混合查询、元数据过滤
-- Qdrant：高性能查询、向量 + 结构化过滤、Go/REST SDK
+- Qdrant：高性能查询、向量 + 结构化过滤、REST API / gRPC
 - Elasticsearch 向量功能：混合搜索、文本与向量联合查询
 
 ## 5. 控制台设计
@@ -526,19 +527,27 @@ Flux 的能力应覆盖或对标以下主流产品的核心维度：
 4. **参数调优**：实时调整 efSearch（HNSW）、nProbe（IVF），观察 recall 变化
 
 ### 5.4 技术实现
-- 前端：纯 HTML + CSS + JavaScript（Go embed 嵌入）
+- 前端：纯 HTML + CSS + JavaScript（编译期嵌入 嵌入）
 - 后端：调用现有 REST API + 新增 `/collections/{name}/recall` 端点
 - 新增端点 `POST /collections/{name}/recall` 在一次请求中同时执行
   ANN 搜索和 BruteForce 搜索，返回对比数据
 
-## 6. 技术栈建议
+## 6. 技术栈
 
-- 核心引擎：Go（零外部依赖，仅标准库）
-- 控制台：Go embed + HTML/CSS/JS SPA
-- 数据持久化：JSON Lines WAL + JSON 快照
-- 索引算法：Go 手写实现 HNSW、IVF、BM25，无第三方 ANN 库
-- API：Go HTTP/REST（net/http 标准库）
-- 可视化与调试：8 页面 SPA 控制台（Dashboard/Schema/Data/Search/Recall/Index/Explain/API Playground）
+- 核心引擎：C++17（GCC 13+ / Clang 17+）
+- 构建系统：CMake 3.25+，vcpkg 包管理
+- 距离计算：Google Highway（可移植 SIMD，x86 AVX2/AVX-512 + ARM NEON）
+- HTTP 服务：cpp-httplib（单头文件，零依赖）
+- JSON：nlohmann/json（单头文件）
+- 日志：spdlog
+- CLI：CLI11
+- 配置：yaml-cpp + 环境变量覆盖
+- 测试：Google Test
+- 控制台：编译期嵌入 HTML/CSS/JS SPA
+- 数据持久化：JSON Lines WAL + CRC32 校验 + JSON 全量快照
+- 索引算法：自实现 HNSW、IVF（K-means++）、BM25Okapi
+- API：HTTP REST
+- 部署：单静态二进制 ~5MB，Docker 多阶段构建
 
 ## 7. 学习目标与价值
 

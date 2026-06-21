@@ -4,17 +4,17 @@ services:
   flux:
     build: .
     ports:
-      - "8080:8080"
+      - "9876:9876"
     volumes:
       - flux-data:/data
     environment:
-      - FLUX_ADDR=:8080
+      - FLUX_ADDR=:9876
       - FLUX_WAL_PATH=/data/flux.wal
       - FLUX_SNAPSHOT_PATH=/data/snapshot.json
       - FLUX_SNAPSHOT_INTERVAL=300
       - FLUX_LOG_LEVEL=info
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:9876/health"]
       interval: 15s
       timeout: 5s
       retries: 3

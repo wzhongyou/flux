@@ -1,0 +1,35 @@
+{
+  "name": "flux",
+  "version": "2.0.0",
+  "description": "Vector database recall engine (C++ rewrite)",
+  "dependencies": [
+    {
+      "name": "highway",
+      "features": []
+    },
+    {
+      "name": "nlohmann-json",
+      "features": []
+    },
+    {
+      "name": "cpp-httplib",
+      "features": ["openssl"]
+    },
+    {
+      "name": "spdlog",
+      "features": []
+    },
+    {
+      "name": "cli11",
+      "features": []
+    },
+    {
+      "name": "yaml-cpp",
+      "features": []
+    },
+    {
+      "name": "gtest",
+      "features": []
+    }
+  ]
+}

@@ -1,32 +1,31 @@
-.PHONY: build run test clean docker stop
+.PHONY: build run test clean docker debug deps format
 
-# Build the binary
+BUILD_DIR := build
+BUILD_TYPE ?= Release
+NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
+
 build:
-	go build -o bin/flux ./cmd/flux
+	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+	cmake --build $(BUILD_DIR) -j$(NPROC)
 
-# Run the server locally
-run:
-	go run ./cmd/flux
+run: build
+	./$(BUILD_DIR)/src/flux
 
-# Run all tests
-test:
-	go test ./...
+test: build
+	cd $(BUILD_DIR) && ctest --output-on-failure -j$(NPROC)
 
-# Clean build artifacts
 clean:
-	rm -rf bin/ data/ *.wal *.snapshot.json
+	rm -rf $(BUILD_DIR)
 
-# Build Docker image
 docker:
 	docker build -t flux:latest .
 
-# Start with Docker Compose
-docker-up:
-	docker compose up -d
+debug:
+	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug -DSANITIZE=ON
+	cmake --build $(BUILD_DIR) -j$(NPROC)
 
-# Stop Docker Compose
-docker-down:
-	docker compose down
+deps:
+	brew install cmake nlohmann-json spdlog highway cpp-httplib cli11 yaml-cpp googletest
 
-# Build and run
-all: build run
+format:
+	find src tests -name '*.cpp' -o -name '*.h' | xargs clang-format -i
