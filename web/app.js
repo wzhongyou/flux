@@ -14,9 +14,12 @@ function switchView(name) {
 }
 
 document.getElementById('sr-mode')?.addEventListener('change', function() {
-  document.getElementById('sr-txt-row').style.display = this.value === 'hybrid' ? '' : 'none';
-  document.getElementById('sr-alpha').style.display = this.value === 'hybrid' ? '' : 'none';
-  document.getElementById('sr-alpha-label').style.display = this.value === 'hybrid' ? '' : 'none';
+  const isHybrid = this.value === 'hybrid';
+  const isText = this.value === 'text';
+  document.getElementById('sr-txt-row').style.display = (isHybrid || isText) ? '' : 'none';
+  document.getElementById('sr-alpha').style.display = isHybrid ? '' : 'none';
+  document.getElementById('sr-alpha-label').style.display = isHybrid ? '' : 'none';
+  document.getElementById('sr-vec').parentElement.style.display = isText ? 'none' : '';
 });
 
 async function api(method, path, body) {
@@ -139,19 +142,25 @@ async function doSearch() {
   const col = document.getElementById('sr-collection').value, mode = document.getElementById('sr-mode').value;
   const k = parseInt(document.getElementById('sr-k').value)||5;
   if (!col) return alert('Select collection');
-  const vec = document.getElementById('sr-vec').value.trim().split(',').map(s=>parseFloat(s.trim()));
-  if (vec.some(isNaN)) return alert('Invalid vector');
   let filter = {};
   const fs = document.getElementById('sr-filter').value.trim();
   if (fs) { try{filter=JSON.parse(fs)}catch(e){return alert('Invalid filter JSON')} }
 
   let r;
-  if (mode==='hybrid') {
+  if (mode==='text') {
     const txt = document.getElementById('sr-txt').value.trim();
     if (!txt) return alert('Text query required');
-    r = await api('POST', `/collections/${encodeURIComponent(col)}/hybrid-search`, {query:vec,text_query:txt,k,alpha:parseFloat(document.getElementById('sr-alpha').value)||0.5,filter});
+    r = await api('POST', `/collections/${encodeURIComponent(col)}/hybrid-search`, {query:[],text_query:txt,k,alpha:0,filter});
   } else {
-    r = await api('POST', `/collections/${encodeURIComponent(col)}/search`, {query:vec,k,filter});
+    const vec = document.getElementById('sr-vec').value.trim().split(',').map(s=>parseFloat(s.trim()));
+    if (vec.some(isNaN)) return alert('Invalid vector');
+    if (mode==='hybrid') {
+      const txt = document.getElementById('sr-txt').value.trim();
+      if (!txt) return alert('Text query required');
+      r = await api('POST', `/collections/${encodeURIComponent(col)}/hybrid-search`, {query:vec,text_query:txt,k,alpha:parseFloat(document.getElementById('sr-alpha').value)||0.5,filter});
+    } else {
+      r = await api('POST', `/collections/${encodeURIComponent(col)}/search`, {query:vec,k,filter});
+    }
   }
   const results = r.data.results||[];
   document.getElementById('sr-results').style.display = '';

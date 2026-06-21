@@ -119,6 +119,16 @@ Flux 是轻量级向量数据库引擎，适用场景：
 | GET | `/collections/{name}/index` | 查看索引状态 |
 | POST | `/collections/{name}/index` | 构建/删除索引 |
 
+三种索引类型：
+
+| 索引 | 适用场景 | recall | 构建 |
+|------|----------|:------:|------|
+| **BruteForce** | 默认，无需构建，小数据量（< 10K） | 1.0 | 无需 |
+| **HNSW** | 高精度场景，召回优先 | ≥ 0.95 | `{"action":"build","index_type":"hnsw"}` |
+| **IVF** | 大规模数据，延迟优先 | ≥ 0.85 | `{"action":"build","index_type":"ivf"}` |
+
+切换：`drop` → `build` 即可，不丢数据。
+
 ### 运维
 
 | 方法 | 路径 | 说明 |

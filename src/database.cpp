@@ -234,12 +234,16 @@ std::vector<HybridSearchResult> Collection::hybrid_search(
 
         double vec_norm = 0.0;
         if (vec_score_map.count(id)) {
-            vec_norm = (vec_score_map[id] - min_vec) / vec_range;
+            double raw = vec_score_map[id];
+            vec_norm = (raw == max_vec && vec_range == 1.0 && max_vec == min_vec) ? 1.0
+                     : (raw - min_vec) / vec_range;
         }
         double text_norm = 0.0;
         auto ts_it = text_scores.find(id);
         if (ts_it != text_scores.end()) {
-            text_norm = (ts_it->second - min_text) / text_range;
+            double raw = ts_it->second;
+            text_norm = (raw == max_text && text_range == 1.0 && max_text == min_text) ? 1.0
+                      : (raw - min_text) / text_range;
         }
 
         double combined;
@@ -513,6 +517,13 @@ int VectorDatabase::batch_upsert(const std::string& collection_name, std::vector
     for (const auto& doc : docs) {
         col->docs[doc.id] = doc;
         if (col->meta_index) col->meta_index->insert(doc.id, doc.metadata);
+        if (col->bm25 && !col->text_field.empty()) {
+            if (doc.metadata.contains(col->text_field) &&
+                doc.metadata[col->text_field].is_string()) {
+                col->bm25->index_document(doc.id,
+                    doc.metadata[col->text_field].get<std::string>());
+            }
+        }
         if (col->index) col->index->insert(doc.id, doc.vector);
     }
 

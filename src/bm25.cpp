@@ -14,14 +14,33 @@ std::vector<std::string> bm25_tokenize(const std::string& text) {
     std::vector<std::string> terms;
     std::string current;
 
-    for (unsigned char c : text) {
-        if (std::isalnum(c)) {
+    for (size_t i = 0; i < text.size(); ) {
+        unsigned char c = static_cast<unsigned char>(text[i]);
+
+        // UTF-8 multibyte sequence (0x80–0xFF): treat as token character
+        if (c >= 0x80) {
+            // Consume one full UTF-8 codepoint (1–4 bytes)
+            size_t len = 1;
+            if ((c & 0xE0) == 0xC0)      len = 2;       // 110xxxxx
+            else if ((c & 0xF0) == 0xE0) len = 3;       // 1110xxxx
+            else if ((c & 0xF8) == 0xF0) len = 4;       // 11110xxx
+            for (size_t j = 0; j < len && i + j < text.size(); j++) {
+                current += text[i + j];
+            }
+            i += len;
+        }
+        // ASCII alphanumeric
+        else if (std::isalnum(c)) {
             current += static_cast<char>(std::tolower(c));
-        } else {
+            i++;
+        }
+        // ASCII separator (whitespace, punctuation, etc.)
+        else {
             if (!current.empty()) {
                 terms.push_back(std::move(current));
                 current.clear();
             }
+            i++;
         }
     }
     if (!current.empty()) {
