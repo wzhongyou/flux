@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/wzhongyou/proximia"
+	"github.com/wzhongyou/flux"
 )
 
 
@@ -24,7 +24,7 @@ import (
 
 type createCollectionRequest struct {
 	Name        string                  `json:"name"`
-	Metric      proximia.DistanceMetric `json:"metric"`
+	Metric      flux.DistanceMetric `json:"metric"`
 	EnableIndex bool                    `json:"enable_index"`
 	IndexType   string                  `json:"index_type"`
 	Schema      map[string]interface{}  `json:"schema,omitempty"`
@@ -51,7 +51,7 @@ type searchRequest struct {
 }
 
 type searchResponse struct {
-	Results     []proximia.SearchResult `json:"results"`
+	Results     []flux.SearchResult `json:"results"`
 	TotalTimeNs int64                   `json:"total_time_ns,omitempty"`
 	DocsScanned int                     `json:"docs_scanned,omitempty"`
 	IndexUsed   string                  `json:"index_used,omitempty"`
@@ -66,15 +66,15 @@ type hybridSearchRequest struct {
 }
 
 type hybridSearchResponse struct {
-	Results []proximia.HybridSearchResult `json:"results"`
+	Results []flux.HybridSearchResult `json:"results"`
 	TotalTimeNs int64                     `json:"total_time_ns"`
 }
 
 type recallResponse struct {
 	Query           []float64                 `json:"query"`
 	TopK            int                       `json:"top_k"`
-	AnnResults      []proximia.SearchResult    `json:"ann_results"`
-	BfResults       []proximia.SearchResult    `json:"bf_results"`
+	AnnResults      []flux.SearchResult    `json:"ann_results"`
+	BfResults       []flux.SearchResult    `json:"bf_results"`
 	Recall          float64                   `json:"recall"`
 	AnnTimeNs       int64                     `json:"ann_time_ns"`
 	BfTimeNs        int64                     `json:"bf_time_ns"`
@@ -92,7 +92,7 @@ type explainResponse struct {
 	ResultsReturned int                     `json:"results_returned"`
 	FilterApplied   string                  `json:"filter_applied,omitempty"`
 	SearchTimeNs    int64                   `json:"search_time_ns"`
-	Results         []proximia.SearchResult `json:"results"`
+	Results         []flux.SearchResult `json:"results"`
 }
 
 type indexActionRequest struct {
@@ -109,8 +109,8 @@ type snapshotRequest struct {
 // ============================================================
 
 type server struct {
-	db     *proximia.VectorDatabase
-	config *proximia.Config
+	db     *flux.VectorDatabase
+	config *flux.Config
 	sem    chan struct{} // concurrency limiter
 }
 
@@ -121,7 +121,7 @@ func main() {
 	flag.Parse()
 
 	// Load config
-	cfg, err := proximia.LoadConfig(*configPath)
+	cfg, err := flux.LoadConfig(*configPath)
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
@@ -135,7 +135,7 @@ func main() {
 	}
 
 	// Initialize database
-	db, err := proximia.NewVectorDatabase(cfg.Database.WALPath)
+	db, err := flux.NewVectorDatabase(cfg.Database.WALPath)
 	if err != nil {
 		log.Fatalf("failed to create database: %v", err)
 	}
@@ -157,7 +157,7 @@ func main() {
 	}
 
 	// Extract web files
-	webSubFS, err := fs.Sub(proximia.WebFiles, "web")
+	webSubFS, err := fs.Sub(flux.WebFiles, "web")
 	if err != nil {
 		log.Fatalf("failed to create web sub filesystem: %v", err)
 	}
@@ -209,12 +209,12 @@ func main() {
 	}()
 
 	if cfg.Server.TLSEnabled() {
-		log.Printf("proximia server listening on %s (TLS)", cfg.Server.Addr)
+		log.Printf("flux server listening on %s (TLS)", cfg.Server.Addr)
 		if err := srv.ListenAndServeTLS(cfg.Server.TLSCertFile, cfg.Server.TLSKeyFile); err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
 	} else {
-		log.Printf("proximia server listening on %s", cfg.Server.Addr)
+		log.Printf("flux server listening on %s", cfg.Server.Addr)
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
@@ -396,7 +396,7 @@ func (s *server) handleCollections(w http.ResponseWriter, r *http.Request) {
 
 		// Create with or without schema
 		if req.Schema != nil {
-			schema, err := proximia.SchemaFromMap(req.Schema)
+			schema, err := flux.SchemaFromMap(req.Schema)
 			if err != nil {
 				badRequest(w, fmt.Errorf("invalid schema: %v", err))
 				return
@@ -443,7 +443,7 @@ func (s *server) handleUpsert(w http.ResponseWriter, r *http.Request, collection
 		badRequest(w, fmt.Errorf("id is required"))
 		return
 	}
-	if err := s.db.Upsert(collection, &proximia.Document{
+	if err := s.db.Upsert(collection, &flux.Document{
 		ID:       req.ID,
 		Vector:   req.Vector,
 		Metadata: req.Metadata,
@@ -464,13 +464,13 @@ func (s *server) handleBatchUpsert(w http.ResponseWriter, r *http.Request, colle
 		badRequest(w, fmt.Errorf("documents array is required"))
 		return
 	}
-	docs := make([]*proximia.Document, len(req.Documents))
+	docs := make([]*flux.Document, len(req.Documents))
 	for i, d := range req.Documents {
 		if d.ID == "" {
 			badRequest(w, fmt.Errorf("documents[%d].id is required", i))
 			return
 		}
-		docs[i] = &proximia.Document{
+		docs[i] = &flux.Document{
 			ID:       d.ID,
 			Vector:   d.Vector,
 			Metadata: d.Metadata,
@@ -593,7 +593,7 @@ func (s *server) handleHybridSearch(w http.ResponseWriter, r *http.Request, coll
 	results := s.db.HybridSearch(collection, req.Query, req.TextQuery, req.K, req.Alpha, filter)
 	elapsed := time.Since(start)
 	if results == nil {
-		results = []proximia.HybridSearchResult{}
+		results = []flux.HybridSearchResult{}
 	}
 	resp := hybridSearchResponse{
 		Results:     results,
@@ -613,7 +613,7 @@ func (s *server) handleRecall(w http.ResponseWriter, r *http.Request, collection
 	indexType, _ := s.db.IndexInfo(collection)
 	annSearched := indexType != ""
 
-	var annResults []proximia.SearchResult
+	var annResults []flux.SearchResult
 	var annTime time.Duration
 	if annSearched {
 		start := time.Now()
@@ -722,7 +722,7 @@ func (s *server) handleSnapshot(w http.ResponseWriter, r *http.Request) {
 	var req snapshotRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil { badRequest(w, err); return }
 	path := req.Path
-	if path == "" { path = "proximia.snapshot.json" }
+	if path == "" { path = "flux.snapshot.json" }
 	if err := s.db.Snapshot(path); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()}); return
 	}
@@ -734,7 +734,7 @@ func (s *server) handleRestore(w http.ResponseWriter, r *http.Request) {
 	var req snapshotRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil { badRequest(w, err); return }
 	path := req.Path
-	if path == "" { path = "proximia.snapshot.json" }
+	if path == "" { path = "flux.snapshot.json" }
 	if err := s.db.LoadFromSnapshot(path); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()}); return
 	}
@@ -762,7 +762,7 @@ func (s *server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" { notFound(w); return }
-	data, err := proximia.WebFiles.ReadFile("web/index.html")
+	data, err := flux.WebFiles.ReadFile("web/index.html")
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "console not found"})
 		return
@@ -776,45 +776,45 @@ func (s *server) handleRoot(w http.ResponseWriter, r *http.Request) {
 // Helpers
 // ============================================================
 
-func buildFilter(raw map[string]interface{}) proximia.FilterFunc {
+func buildFilter(raw map[string]interface{}) flux.FilterFunc {
 	if len(raw) == 0 {
 		return nil
 	}
-	var filters []proximia.FilterFunc
+	var filters []flux.FilterFunc
 	for key, rawValue := range raw {
 		switch rawValue := rawValue.(type) {
 		case map[string]interface{}:
 			// Handle operators: {"$eq": val, "$ne": val, "$gt": val, "$lt": val, "$in": [val,...]}
 			if eq, ok := rawValue["$eq"]; ok {
-				filters = append(filters, proximia.FieldEqual(key, eq))
+				filters = append(filters, flux.FieldEqual(key, eq))
 			}
 			if ne, ok := rawValue["$ne"]; ok {
-				filters = append(filters, proximia.FieldNotEqual(key, ne))
+				filters = append(filters, flux.FieldNotEqual(key, ne))
 			}
 			if gt, ok := rawValue["$gt"]; ok {
 				gtF, _ := toFloat64(gt)
 				lt := rawValue["$lt"]
 				ltF, ltOK := toFloat64(lt)
 				if ltOK {
-					filters = append(filters, proximia.FieldRange(key, gtF, ltF))
+					filters = append(filters, flux.FieldRange(key, gtF, ltF))
 				} else {
-					filters = append(filters, proximia.FieldRange(key, gtF, 1e18))
+					filters = append(filters, flux.FieldRange(key, gtF, 1e18))
 				}
 			}
 			if lt, ok := rawValue["$lt"]; ok {
 				if _, hasGT := rawValue["$gt"]; !hasGT {
 					ltF, _ := toFloat64(lt)
-					filters = append(filters, proximia.FieldRange(key, -1e18, ltF))
+					filters = append(filters, flux.FieldRange(key, -1e18, ltF))
 				}
 			}
 			if inVals, ok := rawValue["$in"]; ok {
 				if arr, ok := inVals.([]interface{}); ok {
-					filters = append(filters, proximia.FieldIn(key, arr...))
+					filters = append(filters, flux.FieldIn(key, arr...))
 				}
 			}
 			if text, ok := rawValue["$text"]; ok {
 				if s, ok := text.(string); ok {
-					filters = append(filters, proximia.TextMatch(key, s))
+					filters = append(filters, flux.TextMatch(key, s))
 				}
 			}
 			if geo, ok := rawValue["$geo"]; ok {
@@ -822,19 +822,19 @@ func buildFilter(raw map[string]interface{}) proximia.FilterFunc {
 					lat, _ := toFloat64(geoMap["lat"])
 					lng, _ := toFloat64(geoMap["lng"])
 					radius, _ := toFloat64(geoMap["radius"])
-					filters = append(filters, proximia.GeoRadius(key, lat, lng, radius))
+					filters = append(filters, flux.GeoRadius(key, lat, lng, radius))
 				}
 			}
 
 		default:
 			// Simple equality filter
-			filters = append(filters, proximia.FieldEqual(key, rawValue))
+			filters = append(filters, flux.FieldEqual(key, rawValue))
 		}
 	}
 	if len(filters) == 1 {
 		return filters[0]
 	}
-	return proximia.And(filters...)
+	return flux.And(filters...)
 }
 
 func toFloat64(v interface{}) (float64, bool) {

@@ -1,4 +1,4 @@
-# Proximia HTTP API 协议文档
+# Flux HTTP API 协议文档
 
 ## 基本信息
 
@@ -543,11 +543,11 @@ GET /metrics
 
 | 指标 | 说明 |
 |------|------|
-| `proximia_vectors_total` | 向量总数 |
-| `proximia_searches_total` | 搜索次数 |
-| `proximia_upserts_total` | 写入次数 |
-| `proximia_deletes_total` | 删除次数 |
-| `proximia_search_latency_ns` | 搜索延迟 |
+| `flux_vector_count` | 向量总数 |
+| `flux_search_total` | 搜索次数 |
+| `flux_upsert_total` | 写入次数 |
+| `flux_delete_total` | 删除次数 |
+| `flux_search_duration_ms` | 搜索延迟 |
 
 ---
 
@@ -556,23 +556,23 @@ GET /metrics
 ### Go SDK（直接嵌入，无网络开销）
 
 ```go
-import "github.com/wzhongyou/proximia"
+import "github.com/wzhongyou/flux"
 
 // 1. 打开数据库
-db, _ := proximia.NewVectorDatabase("app.wal")
+db, _ := flux.NewVectorDatabase("app.wal")
 defer db.Close()
 
 // 2. 建库
-schema := &proximia.Schema{
-    Fields: []proximia.FieldSchema{
-        {Name: "category", Type: proximia.FieldTypeString, Indexable: true},
-        {Name: "content",  Type: proximia.FieldTypeText,   Indexable: true},
+schema := &flux.Schema{
+    Fields: []flux.FieldSchema{
+        {Name: "category", Type: flux.FieldTypeString, Indexable: true},
+        {Name: "content",  Type: flux.FieldTypeText,   Indexable: true},
     },
 }
-db.CreateCollectionWithSchema("docs", proximia.Cosine, schema)
+db.CreateCollectionWithSchema("docs", flux.Cosine, schema)
 
 // 3. 写数据
-db.Upsert("docs", &proximia.Document{
+db.Upsert("docs", &flux.Document{
     ID:       "doc1",
     Vector:   []float64{0.1, 0.2, 0.3},
     Metadata: map[string]interface{}{"category": "tech", "content": "vector database"},
@@ -583,7 +583,7 @@ db.BuildIndex("docs", "hnsw")
 
 // 5. 查
 results, _ := db.Search("docs", []float64{0.15, 0.25, 0.35}, 10,
-    proximia.FieldEqual("category", "tech"))
+    flux.FieldEqual("category", "tech"))
 
 // 6. 混合查
 hybrid := db.HybridSearch("docs", queryVec, "vector database", 10, 0.5, nil)

@@ -1,4 +1,4 @@
-# Proximia
+# Flux
 
 用 Go 实现的向量数据库引擎。核心算法自实现，零第三方依赖。
 
@@ -6,13 +6,13 @@
 
 ```bash
 # 一键运行（需要 Go 1.22+）
-go run github.com/wzhongyou/proximia/cmd/proximia@latest
+go run github.com/wzhongyou/flux/cmd/flux@latest
 
 # 或从源码构建
-git clone https://github.com/wzhongyou/proximia.git
-cd proximia
-go build -o proximia ./cmd/proximia
-./proximia
+git clone https://github.com/wzhongyou/flux.git
+cd flux
+go build -o flux ./cmd/flux
+./flux
 ```
 
 启动后打开 http://localhost:9876 进入控制台。
@@ -52,9 +52,9 @@ curl -s -X POST http://localhost:9876/collections/demo/hybrid-search \
 
 ## 定位
 
-Proximia 不是 Milvus 或 Qdrant 的替代品。适用场景：
+Flux 不是 Milvus 或 Qdrant 的替代品。适用场景：
 
-- **嵌入使用**：`import "github.com/wzhongyou/proximia"` 在进程内调用
+- **嵌入使用**：`import "github.com/wzhongyou/flux"` 在进程内调用
 - **边缘/私有部署**：单二进制，无需 Kubernetes、etcd、对象存储
 - **CI/测试环境**：`go run` 秒级启动，无需 Docker
 - **中小规模**：百万级以下向量，单节点够用
@@ -163,17 +163,17 @@ Proximia 不是 Milvus 或 Qdrant 的替代品。适用场景：
 
 ```bash
 # CLI 参数
-proximia -addr :9090 -wal /data/proximia.wal -config /etc/proximia.yaml
+flux -addr :9090 -wal /data/flux.wal -config /etc/flux.yaml
 
 # 环境变量
-export PROXIMIA_ADDR=:9090
-export PROXIMIA_WAL_PATH=/data/proximia.wal
-export PROXIMIA_API_KEYS=key1,key2
-export PROXIMIA_LOG_LEVEL=debug
-proximia
+export FLUX_ADDR=:9090
+export FLUX_WAL_PATH=/data/flux.wal
+export FLUX_API_KEYS=key1,key2
+export FLUX_LOG_LEVEL=debug
+flux
 
 # 配置文件（YAML 或 JSON）
-proximia -config ./example_config.yaml
+flux -config ./example_config.yaml
 ```
 
 所有配置项见 [example_config.yaml](./example_config.yaml)。
@@ -181,22 +181,22 @@ proximia -config ./example_config.yaml
 ## Go SDK 使用
 
 ```go
-import "github.com/wzhongyou/proximia"
+import "github.com/wzhongyou/flux"
 
-db, _ := proximia.NewVectorDatabase("demo.wal")
+db, _ := flux.NewVectorDatabase("demo.wal")
 defer db.Close()
 
 // 带 Schema 的集合
-schema := &proximia.Schema{
-    Fields: []proximia.SchemaField{
+schema := &flux.Schema{
+    Fields: []flux.SchemaField{
         {Name: "tag", Type: "string", Indexable: true},
         {Name: "title", Type: "text"},
     },
 }
-db.CreateCollectionWithSchema("docs", proximia.Cosine, schema)
+db.CreateCollectionWithSchema("docs", flux.Cosine, schema)
 
 // 写入
-db.Upsert("docs", &proximia.Document{
+db.Upsert("docs", &flux.Document{
     ID: "1", Vector: []float64{0.9, 0.1, 0.2},
     Metadata: map[string]interface{}{"tag": "news", "title": "Breaking news"},
 })
@@ -206,7 +206,7 @@ db.BuildIndex("docs", "hnsw")
 
 // 向量搜索
 results, _ := db.Search("docs", []float64{0.8, 0.2, 0.1}, 5,
-    proximia.And(proximia.FieldEqual("tag", "news"), proximia.FieldRange("score", 0, 100)))
+    flux.And(flux.FieldEqual("tag", "news"), flux.FieldRange("score", 0, 100)))
 
 // 混合搜索
 hybrid := db.HybridSearch("docs", []float64{0.8, 0.2, 0.1}, "news", 5, 0.7, nil)
@@ -230,9 +230,9 @@ hybrid := db.HybridSearch("docs", []float64{0.8, 0.2, 0.1}, "news", 5, 0.7, nil)
 ## 项目结构
 
 ```
-├── *.go                引擎核心（13 文件，包名 proximia）
+├── *.go                引擎核心（13 文件，包名 flux）
 ├── web/                控制台前端（HTML/CSS/JS）
-├── cmd/proximia/       HTTP 服务入口
+├── cmd/flux/       HTTP 服务入口
 ├── examples/quickstart Go SDK 示例
 ├── Dockerfile          多阶段构建
 ├── docker-compose.yml  单节点部署

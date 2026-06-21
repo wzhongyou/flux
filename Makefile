@@ -2,11 +2,11 @@
 
 # Build the binary
 build:
-	go build -o bin/proximia ./cmd/proximia
+	go build -o bin/flux ./cmd/flux
 
 # Run the server locally
 run:
-	go run ./cmd/proximia
+	go run ./cmd/flux
 
 # Run all tests
 test:
@@ -18,7 +18,7 @@ clean:
 
 # Build Docker image
 docker:
-	docker build -t proximia:latest .
+	docker build -t flux:latest .
 
 # Start with Docker Compose
 docker-up:

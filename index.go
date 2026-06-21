@@ -1,4 +1,4 @@
-package proximia
+package flux
 
 import "io"
 

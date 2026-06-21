@@ -1,4 +1,4 @@
-package proximia
+package flux
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 // Configuration
 // ============================================================
 
-// Config represents the full Proximia server configuration.
+// Config represents the full Flux server configuration.
 // It can be loaded from a YAML/JSON file, environment variables, or CLI flags.
 type Config struct {
 	Server   ServerConfig   `json:"server" yaml:"server"`
@@ -62,7 +62,7 @@ func DefaultConfig() *Config {
 			MaxConcurrent: 100,
 		},
 		Database: DatabaseConfig{
-			WALPath:          "proximia.wal",
+			WALPath:          "flux.wal",
 			SnapshotPath:     "",
 			SnapshotInterval: 0,
 		},
@@ -96,54 +96,54 @@ func LoadConfig(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// applyEnvOverrides applies PROXIMIA_* environment variables.
-// Maps: PROXIMIA_ADDR, PROXIMIA_WAL_PATH, PROXIMIA_API_KEYS, etc.
+// applyEnvOverrides applies FLUX_* environment variables.
+// Maps: FLUX_ADDR, FLUX_WAL_PATH, FLUX_API_KEYS, etc.
 func applyEnvOverrides(cfg *Config) {
-	if v := os.Getenv("PROXIMIA_ADDR"); v != "" {
+	if v := os.Getenv("FLUX_ADDR"); v != "" {
 		cfg.Server.Addr = v
 	}
-	if v := os.Getenv("PROXIMIA_WAL_PATH"); v != "" {
+	if v := os.Getenv("FLUX_WAL_PATH"); v != "" {
 		cfg.Database.WALPath = v
 	}
-	if v := os.Getenv("PROXIMIA_SNAPSHOT_PATH"); v != "" {
+	if v := os.Getenv("FLUX_SNAPSHOT_PATH"); v != "" {
 		cfg.Database.SnapshotPath = v
 	}
-	if v := os.Getenv("PROXIMIA_SNAPSHOT_INTERVAL"); v != "" {
+	if v := os.Getenv("FLUX_SNAPSHOT_INTERVAL"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
 			cfg.Database.SnapshotInterval = n
 		}
 	}
-	if v := os.Getenv("PROXIMIA_API_KEYS"); v != "" {
+	if v := os.Getenv("FLUX_API_KEYS"); v != "" {
 		cfg.Server.APIKeys = strings.Split(v, ",")
 	}
-	if v := os.Getenv("PROXIMIA_CORS_ORIGINS"); v != "" {
+	if v := os.Getenv("FLUX_CORS_ORIGINS"); v != "" {
 		cfg.Server.CORSOrigins = strings.Split(v, ",")
 	}
-	if v := os.Getenv("PROXIMIA_MAX_CONCURRENT"); v != "" {
+	if v := os.Getenv("FLUX_MAX_CONCURRENT"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
 			cfg.Server.MaxConcurrent = n
 		}
 	}
-	if v := os.Getenv("PROXIMIA_LOG_LEVEL"); v != "" {
+	if v := os.Getenv("FLUX_LOG_LEVEL"); v != "" {
 		cfg.Logging.Level = v
 	}
-	if v := os.Getenv("PROXIMIA_LOG_PRETTY"); v != "" {
+	if v := os.Getenv("FLUX_LOG_PRETTY"); v != "" {
 		cfg.Logging.Pretty = v == "true" || v == "1"
 	}
-	if v := os.Getenv("PROXIMIA_READ_TIMEOUT"); v != "" {
+	if v := os.Getenv("FLUX_READ_TIMEOUT"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
 			cfg.Server.ReadTimeout = n
 		}
 	}
-	if v := os.Getenv("PROXIMIA_WRITE_TIMEOUT"); v != "" {
+	if v := os.Getenv("FLUX_WRITE_TIMEOUT"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
 			cfg.Server.WriteTimeout = n
 		}
 	}
-	if v := os.Getenv("PROXIMIA_TLS_CERT_FILE"); v != "" {
+	if v := os.Getenv("FLUX_TLS_CERT_FILE"); v != "" {
 		cfg.Server.TLSCertFile = v
 	}
-	if v := os.Getenv("PROXIMIA_TLS_KEY_FILE"); v != "" {
+	if v := os.Getenv("FLUX_TLS_KEY_FILE"); v != "" {
 		cfg.Server.TLSKeyFile = v
 	}
 }

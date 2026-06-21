@@ -1,4 +1,4 @@
-# Proximia Configuration Example
+# Flux Configuration Example
 # Copy this file and modify for your deployment.
 
 server:
@@ -26,8 +26,8 @@ server:
   max_concurrent: 100
 
 database:
-  # WAL (Write-Ahead Log) file path (default: "proximia.wal")
-  wal_path: "proximia.wal"
+  # WAL (Write-Ahead Log) file path (default: "flux.wal")
+  wal_path: "flux.wal"
 
   # Snapshot file path (optional)
   # Loading a snapshot on restart speeds up recovery.

@@ -1,8 +1,8 @@
-// Proximia 快速入门示例
+// Flux 快速入门示例
 //
 // 运行:  go run examples/quickstart/main.go
 //
-// 这个示例演示了 Proximia 的核心流程:
+// 这个示例演示了 Flux 的核心流程:
 //   创建集合 → 写入向量 → 建立索引 → 搜索 → 查看效果
 
 package main
@@ -11,14 +11,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/wzhongyou/proximia"
+	"github.com/wzhongyou/flux"
 )
 
 func main() {
 	// ============================================================
 	// 1. 创建数据库（WAL 持久化路径）
 	// ============================================================
-	db, err := proximia.NewVectorDatabase("./example.wal")
+	db, err := flux.NewVectorDatabase("./example.wal")
 	if err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
@@ -28,11 +28,11 @@ func main() {
 	// 2. 创建集合 + 写入数据
 	// ============================================================
 	// 集合 = 向量数据库的"表"，可以有多个
-	db.CreateCollection("articles", proximia.Cosine)
+	db.CreateCollection("articles", flux.Cosine)
 
 	// 每条文档 = ID + 向量 + 元数据
 	// 向量是 []float64，元数据可以是任意结构化字段
-	docs := []*proximia.Document{
+	docs := []*flux.Document{
 		{ID: "doc1", Vector: []float64{0.9, 0.1, 0.2},
 			Metadata: map[string]interface{}{"category": "news", "source": "site-a"}},
 		{ID: "doc2", Vector: []float64{0.1, 0.8, 0.3},
@@ -60,7 +60,7 @@ func main() {
 	// 4. 搜索
 	// ============================================================
 	query := []float64{0.8, 0.2, 0.1}
-	filter := proximia.FieldEqual("category", "news")
+	filter := flux.FieldEqual("category", "news")
 
 	results, _ := db.Search("articles", query, 3, filter)
 

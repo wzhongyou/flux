@@ -27,7 +27,7 @@ go.work.sum
 # env file
 .env
 
-# Proximia data files
+# Flux data files
 *.wal
 *.snapshot.json
 
